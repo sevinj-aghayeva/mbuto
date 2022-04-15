@@ -223,21 +223,11 @@ profile_kselftests() {
 	if [ -f ${__cfg} ]; then
 		__mods=$(${AWK} -F'=' '/=m/ {print $1}' ${__cfg} | ${SORT} -u)
 
-		__egrep_pattern=""
-		for __c in ${__mods}; do
-			__egrep_pattern='^obj-\$\('"${__c}"'\).*.o$|'"${__egrep_pattern}"
-		done
-		__egrep_pattern=${__egrep_pattern%|}
-
-		__kmods_needed=
-		__find_pattern=
-		for __mo in $(${EGREP} -rn --include "*Makefile" ${__egrep_pattern} | \
-				${AWK} -F'+=' '/+=/ {print $2}'); do
-			__m=$(${BASENAME} -s .o ${__mo})
-			__find_pattern="-name ${__m}.ko -o ${__find_pattern}"
-			__kmods_needed="${__m} ${__kmods_needed}"
-		done
-		__find_pattern=${__find_pattern%-o }
+		__pattern=$(list_join "${__mods}" '^obj-\$\(' '\).*.o$' '|')
+		__result=$(${BASENAME} -a -s .o \
+			   $(${EGREP} -rn --include "*Makefile" ${__pattern} | \
+			     ${AWK} -F'+=' '/+=/ {print $2}'))
+		__find_pattern=$(list_join "${__result}" '-name ' '.ko ' '-o ')
 
 		KMODS=$(${FIND} "${MODDIR}" ${__find_pattern} | ${TR} '\n' ' ')
 
@@ -245,6 +235,7 @@ profile_kselftests() {
 
 		KMODS="$(${BASENAME} -a -s .ko ${KMODS})"
 
+		__kmods_needed=$(list_join "${__result}" '' '' ' ')
 		__kmods_missing=$(list_diff "${__kmods_needed}" "${KMODS}")
 
 		if [ ! -z "${__kmods_missing}" ]; then
@@ -432,6 +423,20 @@ list_diff() {
 		[ ${__found} -eq 0 ] && __diff="${__e1} ${__diff}"
 	done
 	printf '%s' "${__diff}"
+}
+
+# list_join() - Add prefix and suffix, with separator, to all tokens in list
+# $1:	List of tokens
+# $2:	Prefix
+# $3:	Suffix
+# $4:	Separator, used after prefix and before suffix
+list_join() {
+	__s=
+	for __t in ${1}; do
+		__s="${2}${__t}${3}${4}${__s}"
+	done
+	__s=${__s%${4}}
+	printf '%s' "${__s}"
 }
 
 ################################################################################
