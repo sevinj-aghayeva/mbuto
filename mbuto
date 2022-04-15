@@ -245,15 +245,8 @@ profile_kselftests() {
 
 		KMODS="$(${BASENAME} -a -s .ko ${KMODS})"
 
-		__kmods_missing=
-		for __n in ${__kmods_needed}; do
-			__found=0
-			for __f in ${KMODS}; do
-				[ ${__n} = ${__f} ] && __found=1
-			done
-			[ ${__found} -eq 0 ] && \
-				__kmods_missing="${__n} ${__kmods_missing}"
-		done
+		__kmods_missing=$(list_diff "${__kmods_needed}" "${KMODS}")
+
 		if [ ! -z "${__kmods_missing}" ]; then
 			notice "WARNING: missing modules: ${__kmods_missing}"
 		fi
@@ -424,6 +417,21 @@ workers() {
 	done
 
 	while ! ${RMDIR} "${__sync_dir}" 2>/dev/null; do ${SLEEP} 1; done
+}
+
+# list_diff() - Given two lists, $1 and $2, print tokens from $1 not in $2
+# $1:	List with elements to be checked
+# $2:	List to check against
+list_diff() {
+	__diff=
+	for __e1 in ${1}; do
+		__found=0
+		for __e2 in ${2}; do
+			[ ${__e1} = ${__e2} ] && __found=1
+		done
+		[ ${__found} -eq 0 ] && __diff="${__e1} ${__diff}"
+	done
+	printf '%s' "${__diff}"
 }
 
 ################################################################################
