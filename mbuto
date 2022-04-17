@@ -203,14 +203,31 @@ profile_kselftests() {
 		exit 1
 	fi
 
-	KERNEL="$(cat include/config/kernel.release)"
+	KERNEL="$(${CAT} include/config/kernel.release)"
 
-	__skip_targets=$(${AWK} '/^TARGETS/ { print $3}' \
-		tools/testing/selftests/Makefile | \
-		${GREP} -v "^${SUBOPT_collection}$" | ${TR} '\n' ' ')
+	__testpath="./tools/testing/selftests/"
+	__makefile="${__testpath}Makefile"
+	__colls=
+	for __c in ${SUBOPT_collection}; do
+		if ! ${GREP} -q "^TARGETS += ${__c}$" ${__makefile}; then
+			notice "WARNING: collection ${__c} doesn't exist"
+			continue
+		fi
+		__colls="${__c} ${__colls}"
+	done
 
-	${MAKE} SKIP_TARGETS="${__skip_targets}" -C \
-		tools/testing/selftests/ install >/dev/null 2>&1
+	for __t in ${SUBOPT_test}; do
+		__colls="${__colls} $(echo ${__t} | ${AWK} -F':' '{print $1}')"
+	done
+	__colls="$(echo ${__colls} | ${TR} ' ' '\n' | ${SORT} -u)"
+
+	__pattern=$(list_join "${__colls}" '^' '$' '|')
+
+	__skip_targets=$(${AWK} '/^TARGETS/ { print $3}' ${__makefile} | \
+		${EGREP} -v "${__pattern}" | ${TR} '\n' ' ')
+
+	${MAKE} SKIP_TARGETS="${__skip_targets}" -C ${__testpath} install \
+								 >/dev/null 2>&1
 
 	MODDIR="$(${REALPATH} .mbuto_mods)"
 	${RM} -rf "${MODDIR}"
@@ -218,10 +235,12 @@ profile_kselftests() {
 	INSTALL_MOD_PATH="${MODDIR}" ${MAKE} modules_install -j ${THREADS} \
 								>/dev/null
 
-	__cfg="./tools/testing/selftests/${SUBOPT_collection}/config"
+	__files=$(list_join "${__colls}" "${__testpath}" '/config' ' ')
+	__cfgs="$(${CAT} ${__files} 2>/dev/null)"
+
 	KMODS=
-	if [ -f ${__cfg} ]; then
-		__mods=$(${AWK} -F'=' '/=m/ {print $1}' ${__cfg} | ${SORT} -u)
+	if [ ! -z "${__cfgs}" ]; then
+		__mods=$(echo "${__cfgs}" | ${AWK} -F'=' '/=m/ {print $1}' | ${SORT} -u)
 
 		__pattern=$(list_join "${__mods}" '^obj-\$\(' '\).*.o$' '|')
 		__result=$(${BASENAME} -a -s .o \
@@ -253,12 +272,11 @@ profile_kselftests() {
 
 	DIRS="${DIRS} /tmp /run/netns /var/run"
 
-	COPIES="${COPIES}
-		tools/testing/selftests/kselftest_install/*,"
+	COPIES="${COPIES} ${__testpath}kselftest_install/*,"
 
 	__run_args=
-	[ ! -z ${SUBOPT_collection} ] && __run_args="-c ${SUBOPT_collection}"
-	[ ! -z ${SUBOPT_test} ] && __run_args="${__run_args} -t ${SUBOPT_test}"
+	[ ! -z "${SUBOPT_collection}" ] && __run_args="-c ${SUBOPT_collection}"
+	[ ! -z "${SUBOPT_test}" ] && __run_args="${__run_args} -t ${SUBOPT_test}"
 
 	FIXUP='#!/bin/sh
 
@@ -289,8 +307,7 @@ profile_kselftests() {
 		[ "${a}" != "s" ] && ./run_kselftest.sh '"${__run_args}"'
 '
 
-	for __f in $(${FIND} tools/testing/selftests/kselftest_install/ \
-		     -executable); do
+	for __f in $(${FIND} ${__testpath}kselftest_install/ -executable); do
 		case $("${FILE}" -bi "${__f}") in
 		"application/"*) libs_copy "${__f}" ;;
 		esac
