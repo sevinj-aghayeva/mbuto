@@ -497,7 +497,7 @@ subopts_get_one() {
 	[ "${__profile}" != "${PROFILE}" ] 	&& return 1
 	[ "${__passed}" != "${__short}" ]	&& return 1
 
-	eval $(echo SUBOPT_${__name}="${__value}")
+	eval $(echo SUBOPT_${__name}=\"${__value}\")
 }
 
 # subopts_get() - Set sub-option values, validating against SUBOPTS
