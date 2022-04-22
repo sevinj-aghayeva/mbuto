@@ -216,6 +216,11 @@ profile_kselftests() {
 		__colls="${__c} ${__colls}"
 	done
 
+	if [ -z ${__colls} ]; then
+		__colls="$(${SED} -n 's/^TARGETS += \(.*\)$/\1/p' \
+			   "${__makefile}")"
+	fi
+
 	for __t in ${SUBOPT_test}; do
 		__colls="${__colls} $(echo ${__t} | ${AWK} -F':' '{print $1}')"
 	done
@@ -325,7 +330,7 @@ profile_kselftests() {
 # List of tools used here, assigned to uppercase variable names
 TOOLS="awk basename bc cat cd chmod cp cpio depmod diff dirname du file find
        grep egrep gzip ldconfig ldd ln ls make mkdir mknod mktemp modprobe mv
-       printf readlink realpath rm rmdir seq sleep sort strip sync tr umount
+       printf readlink realpath rm rmdir sed seq sleep sort strip sync tr umount
        uname wget which"
 
 # err() - Print error and exit
