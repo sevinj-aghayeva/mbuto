@@ -241,12 +241,11 @@ profile_kselftests() {
 								>/dev/null
 
 	__files=$(list_join "${__colls}" "${__testpath}" '/config' ' ')
-	__cfgs="$(${CAT} ${__files} 2>/dev/null)"
+	__mods="$(${CAT} ${__files} 2>/dev/null | \
+			${AWK} -F'=' '/=m/ {print $1}' | ${SORT} -u)"
 
 	KMODS=
-	if [ ! -z "${__cfgs}" ]; then
-		__mods=$(echo "${__cfgs}" | ${AWK} -F'=' '/=m/ {print $1}' | ${SORT} -u)
-
+	if [ ! -z "${__mods}" ]; then
 		__pattern=$(list_join "${__mods}" '^obj-\$\(' '\).*.o$' '|')
 		__result=$(${BASENAME} -a -s .o \
 			   $(${EGREP} -rn --include "*Makefile" ${__pattern} | \
