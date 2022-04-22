@@ -226,10 +226,10 @@ profile_kselftests() {
 	done
 	__colls="$(echo ${__colls} | ${TR} ' ' '\n' | ${SORT} -u)"
 
-	__pattern=$(list_join "${__colls}" '^' '$' '|')
+	__pattern="$(list_join "${__colls}" '^' '$' '|')"
 
-	__skip_targets=$(${AWK} '/^TARGETS/ { print $3}' ${__makefile} | \
-		${EGREP} -v "${__pattern}" | ${TR} '\n' ' ')
+	__skip_targets="$(${AWK} '/^TARGETS/ { print $3}' ${__makefile} | \
+		${EGREP} -v "${__pattern}" | ${TR} '\n' ' ')"
 
 	${MAKE} SKIP_TARGETS="${__skip_targets}" -C ${__testpath} install \
 								 >/dev/null 2>&1
@@ -240,26 +240,26 @@ profile_kselftests() {
 	INSTALL_MOD_PATH="${MODDIR}" ${MAKE} modules_install -j ${THREADS} \
 								>/dev/null
 
-	__files=$(list_join "${__colls}" "${__testpath}" '/config' ' ')
+	__files="$(list_join "${__colls}" "${__testpath}" '/config' ' ')"
 	__mods="$(${CAT} ${__files} 2>/dev/null | \
 			${AWK} -F'=' '/=m/ {print $1}' | ${SORT} -u)"
 
 	KMODS=
 	if [ ! -z "${__mods}" ]; then
-		__pattern=$(list_join "${__mods}" '^obj-\$\(' '\).*.o$' '|')
-		__result=$(${BASENAME} -a -s .o \
+		__pattern="$(list_join "${__mods}" '^obj-\$\(' '\).*.o$' '|')"
+		__result="$(${BASENAME} -a -s .o \
 			   $(${EGREP} -rn --include "*Makefile" ${__pattern} | \
-			     ${AWK} -F'+=' '/+=/ {print $2}'))
-		__find_pattern=$(list_join "${__result}" '-name ' '.ko ' '-o ')
+			     ${AWK} -F'+=' '/+=/ {print $2}'))"
+		__find_pattern="$(list_join "${__result}" '-name ' '.ko ' '-o ')"
 
-		KMODS=$(${FIND} "${MODDIR}" ${__find_pattern} | ${TR} '\n' ' ')
+		KMODS="$(${FIND} "${MODDIR}" ${__find_pattern} | ${TR} '\n' ' ')"
 
 		workers kmod_strip_worker
 
 		KMODS="$(${BASENAME} -a -s .ko ${KMODS})"
 
-		__kmods_needed=$(list_join "${__result}" '' '' ' ')
-		__kmods_missing=$(list_diff "${__kmods_needed}" "${KMODS}")
+		__kmods_needed="$(list_join "${__result}" '' '' ' ')"
+		__kmods_missing="$(list_diff "${__kmods_needed}" "${KMODS}")"
 
 		if [ ! -z "${__kmods_missing}" ]; then
 			notice "WARNING: missing modules: ${__kmods_missing}"
