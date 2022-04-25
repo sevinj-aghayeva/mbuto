@@ -216,7 +216,7 @@ profile_kselftests() {
 		__colls="${__c} ${__colls}"
 	done
 
-	if [ -z ${__colls} ]; then
+	if [ -z "${__colls}" ]; then
 		__colls="$(${SED} -n 's/^TARGETS += \(.*\)$/\1/p' \
 			   "${__makefile}")"
 	fi
