@@ -309,8 +309,12 @@ profile_kselftests() {
 		echo 3 > /proc/sys/kernel/printk
 		echo "Press s for shell, any other key to run selftests"
 		read a
-		[ "${a}" != "s" ] && ./run_kselftest.sh '"${__run_args}"'
-		echo o > /proc/sysrq-trigger
+		if [ "${a}" != "s" ]; then
+			if ./run_kselftest.sh '"${__run_args}"'; then
+				echo "All tests passed, shutting down guest..."
+				echo o > /proc/sysrq-trigger
+			fi
+		fi
 '
 
 	for __f in $(${FIND} ${__testpath}kselftest_install/ -executable); do
