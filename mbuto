@@ -231,6 +231,7 @@ profile_kselftests() {
 	__skip_targets="$(${AWK} '/^TARGETS/ { print $3}' ${__makefile} | \
 		${EGREP} -v "${__pattern}" | ${TR} '\n' ' ')"
 
+	${RM} -rf "${__testpath}/kselftest_install"
 	${MAKE} SKIP_TARGETS="${__skip_targets}" -C ${__testpath} install \
 								 >/dev/null 2>&1
 
@@ -309,6 +310,7 @@ profile_kselftests() {
 		echo "Press s for shell, any other key to run selftests"
 		read a
 		[ "${a}" != "s" ] && ./run_kselftest.sh '"${__run_args}"'
+		echo o > /proc/sysrq-trigger
 '
 
 	for __f in $(${FIND} ${__testpath}kselftest_install/ -executable); do
