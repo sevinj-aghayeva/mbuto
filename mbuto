@@ -216,14 +216,15 @@ profile_kselftests() {
 		__colls="${__c} ${__colls}"
 	done
 
+	for __t in ${SUBOPT_test}; do
+		__colls="${__colls} $(echo ${__t} | ${AWK} -F':' '{print $1}')"
+	done
+
 	if [ -z "${__colls}" ]; then
 		__colls="$(${SED} -n 's/^TARGETS += \(.*\)$/\1/p' \
 			   "${__makefile}")"
 	fi
 
-	for __t in ${SUBOPT_test}; do
-		__colls="${__colls} $(echo ${__t} | ${AWK} -F':' '{print $1}')"
-	done
 	__colls="$(echo ${__colls} | ${TR} ' ' '\n' | ${SORT} -u)"
 
 	__pattern="$(list_join "${__colls}" '^' '$' '|')"
