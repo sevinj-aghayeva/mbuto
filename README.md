@@ -3,6 +3,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 Copyright (c) 2022 Red Hat GmbH
 Author: Stefano Brivio <sbrivio@redhat.com>
 -->
+[`man 1 mbuto`](/static/mbuto.1.html)
 <link rel="stylesheet" type="text/css" href="/static/asciinema-player.css" />
 <script src="/static/asciinema-player.min.js"></script>
 <div id="demo_mbuto_div" style="display: grid; grid-template-columns: 1fr 1fr;">

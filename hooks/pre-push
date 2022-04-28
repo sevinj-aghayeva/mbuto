@@ -1,0 +1,17 @@
+#!/bin/sh -e
+#
+# mbuto: Minimal Builder Using Terse Options
+#
+# hooks/pre-push - Run demos, render man page to HTML, upload everything
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Copyright (c) 2022 Red Hat GmbH
+# Author: Stefano Brivio <sbrivio@redhat.com>
+#
+# cp hooks/pre-push .git/hooks/pre-push
+
+web/demo.sh
+groff -mandoc -T html mbuto.1 > mbuto.1.html
+
+scp *.cast *.cast.gz mbuto.1.html mbuto.sh:/var/www/mbuto/static/
