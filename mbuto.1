@@ -1,0 +1,273 @@
+.\" SPDX-License-Identifier: AGPL-3.0-or-later
+.\" Copyright (c) 2022 Red Hat GmbH
+.\" Author: Stefano Brivio <sbrivio@redhat.com>
+.TH mbuto 1
+
+.SH NAME
+.B mbuto
+\- Host-agnostic initramfs image builder for lightweight virtual machines
+
+.SH SYNOPSIS
+
+.B mbuto [\fIOPTIONS\fR\fB] [\fIADD_ON\fR\fB]...
+
+.SH DESCRIPTION
+
+.B mbuto \fR(\fIM\fRinimal \fIB\fRuilder \fIU\fRsing \fIT\fRerse \fIO\fRptions)
+builds Linux initramfs images suitable for lightweight virtual machine
+environments, without relying on distribution-specific tools (such as
+\fBdracut\fR(8), \fBdebootstrap\fR(8), \fBmkinitramfs\fR(8), etc.) or
+containerised environments.
+
+Programs are sourced from the host, together with required dynamic libraries.
+Kernel modules, links, and initial device nodes are configured manually. A
+convenience support for distribution packages is supplied, with the sole
+function of extracting packages, ignoring dependencies, without an actual
+installation process.
+
+For pre-defined profiles covering common tasks and use cases, see
+\fBPROFILES\fR.
+
+\fIADD_ON\fR can be a list of additional programs, kernel module names, device
+nodes, or generic files. The type is auto-detected.
+
+.SH OPTIONS
+
+.TP
+.BR \-c " " \fIgzip\fR|\fIlz4\fR|\fIlzma\fR|\fIauto\fR|\fInone\fR
+Compression method for CPIO file: \fIauto\fR picks the method resulting in the
+shortest decompression time, measured on the output image (average of five
+runs). Default is \fInone\fR.
+
+.TP
+.BR \-d
+Do not strip binary objects. By default, debugging information is stripped from
+copied binary objects.
+
+.TP
+.BR \-f " " \fIpath
+Path for initramfs output. By default, a temporary file is created.
+
+If the initramfs image already exists, add the given \fIADD_ON\fR to it.
+
+.TP
+.BR \-k " " \fIversion
+Installed kernel version to source associated modules from. By default, the
+currently running kernel version (as reported by uname(1)) is used.
+
+.TP
+.BR \-m " " \fIpath
+Relative root directory for \fI/lib/modules\fR. Default: /
+
+.TP
+.BR \-p " " \fIprofile
+Profile for add-ons, specific init script and format of printed command result.
+Can be one of \fIbase\fR, \fIbash\fR, \fIkata\fR, \fIkata_debug\fR, \fIpasst\fR,
+\fIkselftests\fR. See \fBPROFILES\fR below for further details.
+
+.TP
+.BR \-s " " \fIscript\fR|\fI-\fR
+Path to fix-up script to run before init, which can be used to replace the one
+defined by the profile. \fI-\fR disables the pre-init fix-up script.
+
+.TP
+.BR \-v
+Enable verbose operation.
+
+.TP
+.BR \-h
+Display help message with usage and options.
+
+.SH ENVIRONMENTAL VARIABLES
+
+Environmental variables can be used to replace:
+
+.TP
+.BR \fBPROGS\fI
+Base programs, to be included in the image, defined by the profile.
+
+.BR \fBLIBS_DLOPEN\fI
+Additional libraries, not directly linked from programs, typically loaded via
+dlopen(3) by matching libraries, in the form:
+
+    \fBMATCHING_LIBRARY\fR \fBADDITIONAL_LIBRARY\fI
+
+.TP
+.BR \fBKMODS\fI
+Base kernel modules, defined by the profile.
+
+.TP
+.BR \fBNODES\fI
+
+Device nodes, copied from host if just the name is given, and created otherwise
+if in the form:
+
+    \fBNAME\fR,\fBTYPE\fR,\fBMAJOR\fR,\fBMINOR
+
+.TP
+.BR \fBLINKS\fI
+Link to programs by name, as space-separated pairs of:
+
+    \fBPROGRAM\fR \fBPATH\fR
+
+.TP
+.BR \fBDIRS\fI
+List of initial set of empty directories
+
+.TP
+.BR \fBCOPIES\fI
+Lists of paths to be copied, recursively, preserving attributes and parents.
+
+.SH PROFILES
+
+Profiles define sets of base programs, links, kernel modules, and pre-init
+scripts to cover common use cases. These profiles are currently available:
+
+.TP
+.BR \fBbase\fI
+The bare minimum to start an interactive shell.
+
+.TP
+.BR \fBbash\fI
+Start bash with a few kernel modules and tools to enable basic filesystem usage
+and networking configuration.
+
+.TP
+.BR \fBkata\fI
+Creates a guest image suitable for usage with Kata Containers
+(https://katacontainers.io): source \fIkata-agent\fR and perform cgroup setup
+in pre-init.
+
+.TP
+.BR \fBkata_debug\fI
+Creates a guest image intented to debug issues with Kata Containers
+(https://katacontainers.io): include some more utilities on top of the ones
+sourced by the \fIkata\fR profile, and starts an interactive shell before
+starting \fIkata-agent\fR.
+
+.TP
+.BR \fBpasst\fI
+Creates a guest image used to run the test suite of \fBpasst\fR(1)
+(https://passt.top), including a number of networking utilities among others.
+
+.TP
+.BR \fBkselftests\fI
+Creates a guest image including a set of Linux kernel selftests
+(https://kselftest.wiki.kernel.org/) together with the tools needed to run them.
+
+Modules and test programs are selected depending on the given test collections,
+and, for convenience, this profile also triggers installation of modules and
+test programs to temporary directories.
+
+The following sub-options are provided:
+.RS
+
+.TP
+.BR \-C " " \fIcollection\fR
+Select a collection of tests to run. Collections are defined by the set of
+targets in \fBtools/testing/selftests/Makefile\fR of the Linux kernel tree.
+
+.TP
+.BR \-T " " \fIcollection\fR:\fItest\fR
+Select a specific test to run, within a collection. Available tests are listed
+by \fITEST_PROGS\fR variables in the Makefile of a test subdirectory.
+
+.RE
+
+.SH EXAMPLES
+
+.TP
+
+.BR "Build a base image as temporary file"
+
+.RS
+.nf
+
+$ mbuto
+Applying profile base
+Creating image: /tmp/tmp.hbRUmHpR3a
+Size: bin  353k lib  4.0M kmod  213k total  4.6M compressed  4.5M
+/tmp/tmp.hbRUmHpR3a
+
+.fi
+.RE
+
+.TP
+
+.BR "Build a base image including grep and needed libraries"
+.RS
+.nf
+
+$ mbuto grep
+Applying profile base
+Creating image: /tmp/tmp.RXC8K7altF
+Size: bin  562k lib  4.0M kmod  213k total  4.8M compressed  4.7M
+/tmp/tmp.RXC8K7altF
+
+.fi
+.RE
+
+.TP
+
+.BR "Run an interactive shell with \fBqemu\fR(1)"
+.RS
+.nf
+
+$ kvm -kernel /boot/vmlinuz-$(uname -r) -initrd $(mbuto) \\
+  -nodefaults -nographic -append console=ttyS0 -serial stdio
+
+.fi
+.RE
+
+.TP
+
+.BR "Run the " \fItimens\fR " kselftests collection"
+.RS
+.nf
+
+$ cd linux
+$ kvm -kernel arch/x86/boot/bzImage \\
+  -initrd $(mbuto -p kselftests -C timens) \\
+  -nodefaults -nographic -append console=ttyS0 -serial stdio
+
+.fi
+
+.RE
+
+.TP
+
+.BR "Run the " \fIrtcpie\fR " kselftest from the " \fItimers\fR " collection"
+.RS
+.nf
+
+$ cd linux
+$ mbuto -p kselftests -T timers.rtcpie -f test.img
+$ kvm -kernel arch/x86/boot/bzImage -initrd test.img \\
+  -nodefaults -nographic -append console=ttyS0 -serial stdio
+
+.fi
+.RE
+
+.SH AUTHOR
+
+Stefano Brivio <sbrivio@redhat.com>
+
+.SH REPORTING BUGS
+
+Please send reports or patches via e-mail to the author.
+
+.SH COPYRIGHT
+
+Copyright (c) 2020-2022 Red Hat GmbH.
+
+\fBmbuto\fR is free software: you can redistribute it and/or modify it under the
+terms of the GNU Affero General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version. 
+
+.SH SEE ALSO
+
+\fBqemu\fR(1), \fBsupermin\fR(1), \fBdracut\fR(8), \fBmkinitramfs\fR(8),
+\fBdebootstrap\fR(8).
+
+See example terminal captures at https://mbuto.sh.
