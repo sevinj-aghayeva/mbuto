@@ -10,8 +10,11 @@
 # Author: Stefano Brivio <sbrivio@redhat.com>
 
 setup_common() {
-	export PS1='$ '
 	tmux new-session -d -s mbuto
+	tmux send-keys -t mbuto 'PS1="$ "'
+	tmux send-keys -t mbuto C-m
+	tmux send-keys -t mbuto clear
+	tmux send-keys -t mbuto C-m
 
 	tmux set -t mbuto window-status-format '#W'
 	tmux set -t mbuto window-status-current-format '#W'
@@ -25,7 +28,7 @@ setup_common() {
 }
 
 SCRIPT_base='
-kvm -kernel /boot/vmlinuz-$(uname -r) -initrd $(./mbuto) \
+kvm -kernel /boot/vmlinuz-$(uname -r) -initrd $(mbuto) \
 	-nodefaults -nographic -append console=ttyS0 -serial stdio
 ##
 echo Hello from the guest!
@@ -38,10 +41,29 @@ ls
 #
 make -j $(nproc)
 ################
-kvm -kernel arch/x86/boot/bzImage -initrd $(../mbuto/mbuto -p kselftests) \
+
+kvm -kernel arch/x86/boot/bzImage -initrd $(mbuto -p kselftests -C timens) \
   -m 4096 -cpu host -nodefaults -nographic -append console=ttyS0 -serial stdio
-########################################
--
+####################
+@
+#####
+reset
+##
+
+mbuto -f test.img -p kselftests -T timers:rtcpie
+#################
+kvm -kernel arch/x86/boot/bzImage -initrd test.img \
+  -m 4096 -cpu host -nodefaults -nographic -append console=ttyS0 -serial stdio
+#####
+@
+#######################
+reset
+##
+
+kvm -kernel arch/x86/boot/bzImage -initrd $(mbuto -p kselftests) \
+  -m 4096 -cpu host -nodefaults -nographic -append console=ttyS0 -serial stdio
+#############################################
+@
 ################################################################################
 '
 
@@ -76,8 +98,9 @@ script() {
 	for line in $(eval printf '%s\\\n' \$SCRIPT_${1}); do
 		unset IFS
 		case ${line} in
-		"#"*)	sleep ${#line}		;;
-		*)	cmd_write "${line}"	;;
+		"@")	tmux send-keys -t mbuto C-m	;;
+		"#"*)	sleep ${#line}			;;
+		*)	cmd_write "${line}"		;;
 		esac
 		IFS='
 '
@@ -117,5 +140,4 @@ for demo in base kselftests; do
 	eval teardown_${demo}
 
 	gzip -fk9 ${demo}.cast
-	scp ${demo}.cast ${demo}.cast.gz mbuto.sh:/var/www/mbuto/static/
 done
