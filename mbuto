@@ -780,7 +780,15 @@ prog_add() {
 
 	IFS=','
 	for __a in ${1}; do
-		__bin="$(${WHICH} "${__a}")" && break
+		# We might have alias definitions too, look for a path
+		IFS='
+'
+		__bin=
+		for __path in $(${WHICH} -a "${__a}" 2>/dev/null); do
+			[ -x "${__path}" ] && __bin="${__path}" && break
+		done
+		[ -n "${__bin}" ] && break
+		IFS=','
 	done
 	unset IFS
 	[ -z "${__bin}" ] && err "Can't source ${1}"
