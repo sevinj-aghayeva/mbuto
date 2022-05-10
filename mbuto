@@ -257,7 +257,7 @@ profile_kselftests() {
 
 		KMODS="$(${FIND} "${MODDIR}" ${__find_pattern} | ${TR} '\n' ' ')"
 
-		workers kmod_strip_worker
+		[ "${NOSTRIP}" != "y" ] && workers kmod_strip_worker
 
 		KMODS="$(${BASENAME} -a -s .ko ${KMODS})"
 
@@ -1079,7 +1079,7 @@ cmds() {
 		add "${arg}"
 	done
 
-	[ "${STRIP}" != "n" ] && strip_all
+	[ "${NOSTRIP}" != "y" ] && strip_all
 
 	if [ -z "${ARCHIVEMOUNT}" ]; then
 		( __out="$("${REALPATH}" "${OUT}")"
@@ -1197,7 +1197,7 @@ fi
 while getopts :c:df:k:m:p:s:vh __opt; do
 	case ${__opt} in
 	c) COMPRESS="${OPTARG}"					;;
-	d) STRIP="n"						;;
+	d) NOSTRIP="y"						;;
 	f) OUT="${OPTARG}"					;;
 	k) KERNEL="${OPTARG}"					;;
 	m) MODDIR="${OPTARG}"					;;
