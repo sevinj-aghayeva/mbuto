@@ -51,7 +51,7 @@ THREADS="$(nproc)"
 # Fix-up script to run before /init, can be omitted
 [ -z "${FIXUP}" ] && FIXUP='#!/bin/sh
 
-export PATH=/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin
+export PATH=/usr/local/bin:/bin:/usr/bin:/usr/local/sbin:/sbin:/usr/sbin:
 
 mount -t proc proc /proc
 mount -t sysfs sys /sys
@@ -285,26 +285,7 @@ profile_kselftests() {
 	[ ! -z "${SUBOPT_collection}" ] && __run_args="-c ${SUBOPT_collection}"
 	[ ! -z "${SUBOPT_test}" ] && __run_args="${__run_args} -t ${SUBOPT_test}"
 
-	FIXUP='#!/bin/sh
-
-		export PATH=/bin:/usr/bin:/sbin:/usr/sbin
-
-		mount -t proc proc /proc
-		mount -t sysfs sys /sys
-
-		mount -t devtmpfs dev /dev
-
-		mkdir /dev/pts
-		mount -t devpts pts /dev/pts
-
-		mkdir -p /sys/kernel/debug
-		mount -t debugfs debug /sys/kernel/debug
-
-		# https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=968199
-		ln -sf /proc/self/fd /dev/fd
-		ln -sf /dev/fd/0 /dev/stdin
-		ln -sf /dev/fd/1 /dev/stdout
-		ln -sf /dev/fd/2 /dev/stderr
+	FIXUP="${FIXUP}"'
 
 		set +m
 		:> /etc/fstab
@@ -1206,7 +1187,8 @@ if [ "${LD_PRELOAD}" != "libfakeroot-sysv.so" ] && [ "$(id -u)" -ne 0 ]; then
 	if ! FAKEROOT="$(command -v fakeroot)"; then
 		__fakeroot_missing="y"
 	else
-		PATH="${PATH}:/sbin:/usr/sbin" "${FAKEROOT}" "${0}" "${@}"
+		PATH="${PATH}:/usr/local/sbin:/sbin:/usr/sbin" \
+			"${FAKEROOT}" "${0}" "${@}"
 		exit ${?}
 	fi
 fi
