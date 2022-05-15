@@ -1,4 +1,4 @@
-#!/bin/sh -ef
+#!/bin/sh -efx
 #
 # mbuto: Minimal Builder Using Terse Options
 #
@@ -362,6 +362,7 @@ cleanup() {
 	[ -n "${pkg_tmp}" ] && "${RM}" -f "${pkg_tmp}"
 	[ -n "${compress_test1}" ] && "${RM}" -f "${compress_test1}"
 	[ -n "${compress_test2}" ] && "${RM}" -f "${compress_test2}"
+	return 0
 }
 
 # dir_size() - Print summed size of directories with SI suffix
@@ -1029,14 +1030,15 @@ add() {
 	[ -z "${wd}" ] && cpio_init
 	kmod_init
 
-	[ -f "${1}" ] && __path="${1}" || __path=$(command -v "${1}") || :
-	if [ ! -f "${__path}" ]; then
+set -x
+	[ -e "${1}" ] && __path="${1}" || __path=$(command -v "${1}") || :
+	if [ ! -e "${__path}" ]; then
 		{ pkg_add "${1}" && return; } || err "${1} not found"
 	fi
 
 	case $("${FILE}" -bi "${__path}") in
-	"application/x-sharedlib;"*)
-		PATH="${PATH}:/usr/libexec:/sbin:/usr/sbin" prog_add "${__p}"
+	"application/x-sharedlib;"* | "application/x-pie-executable;"*)
+		PATH="${PATH}:/usr/libexec:/sbin:/usr/sbin" prog_add "${__path}"
 		;;
 	"application/x-object;"*)
 		kmod_add "${__path}"
@@ -1049,9 +1051,10 @@ add() {
 		pkg_rpm_add "${__path}"
 		;;
 	*)
-		"${CP}" --parent -a "${__path}" "${wd}"
+		"${CP}" --parents -a "$(${REALPATH} "${__path}")" "${wd}"
 		;;
 	esac
+set +x
 }
 
 # stats() - Print size information about created image
