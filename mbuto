@@ -1,4 +1,4 @@
-#!/bin/sh -efx
+#!/bin/sh -ef
 #
 # mbuto: Minimal Builder Using Terse Options
 #
@@ -1030,7 +1030,6 @@ add() {
 	[ -z "${wd}" ] && cpio_init
 	kmod_init
 
-set -x
 	[ -e "${1}" ] && __path="${1}" || __path=$(command -v "${1}") || :
 	if [ ! -e "${__path}" ]; then
 		{ pkg_add "${1}" && return; } || err "${1} not found"
